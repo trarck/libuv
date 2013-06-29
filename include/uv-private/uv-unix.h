@@ -39,9 +39,12 @@
 #include <pthread.h>
 #ifdef __ANDROID__
 #include "pthread-fixes.h"
+#if defined(ANDROID_PLATFORM) && ANDROID_PLATFORM<9
+#include "pthread-rwlock.h"
+#endif
+
 #endif
 #include <signal.h>
-
 #if defined(__linux__)
 # include "uv-linux.h"
 #elif defined(__sun)

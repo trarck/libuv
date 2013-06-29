@@ -35,3 +35,7 @@ UpgradeLog*.XML
 Debug
 Release
 ipch
+
+/android-toolchain
+/build/android/libs
+/build/android/obj
