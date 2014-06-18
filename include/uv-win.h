@@ -39,7 +39,7 @@ typedef intptr_t ssize_t;
 #include <sys/stat.h>
 
 #if defined(_MSC_VER) && _MSC_VER < 1600
-# include "uv-private/stdint-msvc2008.h"
+# include "stdint-msvc2008.h"
 #else
 # include <stdint.h>
 #endif
@@ -250,6 +250,10 @@ typedef struct {
   uv_sem_t turnstile2;
 } uv_barrier_t;
 
+typedef struct {
+  DWORD tls_index;
+} uv_key_t;
+
 #define UV_ONCE_INIT { 0, NULL }
 
 typedef struct uv_once_s {
@@ -420,12 +424,12 @@ RB_HEAD(uv_timer_tree_s, uv_timer_s);
   uv_write_t ipc_header_write_req;                                            \
   int ipc_pid;                                                                \
   uint64_t remaining_ipc_rawdata_bytes;                                       \
-  unsigned char reserved[sizeof(void*)];                                      \
   struct {                                                                    \
-    WSAPROTOCOL_INFOW* socket_info;                                           \
-    int tcp_connection;                                                       \
+    void* queue[2];                                                           \
+    int queue_len;                                                            \
   } pending_ipc_info;                                                         \
-  uv_write_t* non_overlapped_writes_tail;
+  uv_write_t* non_overlapped_writes_tail;                                     \
+  void* reserved;
 
 #define UV_PIPE_PRIVATE_FIELDS                                                \
   HANDLE handle;                                                              \
@@ -524,12 +528,19 @@ RB_HEAD(uv_timer_tree_s, uv_timer_s);
   struct addrinfoW* res;                                                      \
   int retcode;
 
+#define UV_GETNAMEINFO_PRIVATE_FIELDS                                         \
+  uv_getnameinfo_cb getnameinfo_cb;                                           \
+  struct sockaddr_storage storage;                                            \
+  int flags;                                                                  \
+  char host[NI_MAXHOST];                                                      \
+  char service[NI_MAXSERV];                                                   \
+  int retcode;
+
 #define UV_PROCESS_PRIVATE_FIELDS                                             \
   struct uv_process_exit_s {                                                  \
     UV_REQ_FIELDS                                                             \
   } exit_req;                                                                 \
   BYTE* child_stdio_buffer;                                                   \
-  uv_err_t spawn_error;                                                       \
   int exit_signal;                                                            \
   HANDLE wait_handle;                                                         \
   HANDLE process_handle;                                                      \
@@ -549,9 +560,10 @@ RB_HEAD(uv_timer_tree_s, uv_timer_s);
       WCHAR* new_pathw;                                                       \
       int file_flags;                                                         \
       int fd_out;                                                             \
-      void* buf;                                                              \
-      size_t length;                                                          \
+      unsigned int nbufs;                                                     \
+      uv_buf_t* bufs;                                                         \
       int64_t offset;                                                         \
+      uv_buf_t bufsml[4];                                                     \
     };                                                                        \
     struct {                                                                  \
       double atime;                                                           \
@@ -582,3 +594,4 @@ int uv_utf16_to_utf8(const WCHAR* utf16Buffer, size_t utf16Size,
     char* utf8Buffer, size_t utf8Size);
 int uv_utf8_to_utf16(const char* utf8Buffer, WCHAR* utf16Buffer,
     size_t utf16Size);
+
